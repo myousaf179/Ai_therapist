@@ -3,7 +3,7 @@ AI Therapist is an empathetic, secure, and easy-to-run Flask application designe
 
 ---
 
-## Repo structure (expected)
+## Repo structure 
 
 ```
 Therapist-Ai/
