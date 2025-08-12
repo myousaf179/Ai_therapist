@@ -1,0 +1,2 @@
+pip install python-dotenv numpy flask google-genai transformers scikit-learn sentencepiece torch
+
