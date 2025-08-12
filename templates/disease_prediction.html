@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Disease Prediction - AI Health Assistant{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-stethoscope"></i> Mental Health Assessment</h1>
+        <p>Complete the assessment to get insights about potential mental health conditions</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="assessment-card">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-text">
+            <span id="progress-text">0% Complete</span>
+        </div>
+
+        <form id="disease-form" action="/predict_disorder" method="POST">
+            <!-- Age Input -->
+            <div class="form-section">
+                <h3><i class="fas fa-user"></i> Personal Information</h3>
+                <div class="form-group">
+                    <label for="age">Age:</label>
+                    <input type="number" id="age" name="age" min="1" max="120" required>
+                </div>
+            </div>
+
+            <!-- Symptoms Sections -->
+            <div class="form-section">
+                <h3><i class="fas fa-brain"></i> Anxiety & Panic Symptoms</h3>
+                <div class="symptoms-grid">
+                    <div class="symptom-item">
+                        <label>Feeling nervous</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="feeling.nervous" name="feeling.nervous" value="1">
+                            <label for="feeling.nervous" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Panic attacks</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="panic" name="panic" value="1">
+                            <label for="panic" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Breathing rapidly</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="breathing.rapidly" name="breathing.rapidly" value="1">
+                            <label for="breathing.rapidly" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Sweating</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="sweating" name="sweating" value="1">
+                            <label for="sweating" class="switch"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-bed"></i> Sleep & Concentration</h3>
+                <div class="symptoms-grid">
+                    <div class="symptom-item">
+                        <label>Trouble concentrating</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="trouble.in.concentration" name="trouble.in.concentration" value="1">
+                            <label for="trouble.in.concentration" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Having trouble sleeping</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="having.trouble.in.sleeping" name="having.trouble.in.sleeping" value="1">
+                            <label for="having.trouble.in.sleeping" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Having trouble with work</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="having.trouble.with.work" name="having.trouble.with.work" value="1">
+                            <label for="having.trouble.with.work" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Trouble concentrating (general)</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="trouble.concentrating" name="trouble.concentrating" value="1">
+                            <label for="trouble.concentrating" class="switch"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-heart-broken"></i> Mood & Emotional Symptoms</h3>
+                <div class="symptoms-grid">
+                    <div class="symptom-item">
+                        <label>Hopelessness</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="hopelessness" name="hopelessness" value="1">
+                            <label for="hopelessness" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Anger</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="anger" name="anger" value="1">
+                            <label for="anger" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Over-reacting</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="over.react" name="over.react" value="1">
+                            <label for="over.react" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Feeling negative</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="feeling.negative" name="feeling.negative" value="1">
+                            <label for="feeling.negative" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Blaming yourself</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="blaming.yourself" name="blaming.yourself" value="1">
+                            <label for="blaming.yourself" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Feeling tired</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="feeling.tired" name="feeling.tired" value="1">
+                            <label for="feeling.tired" class="switch"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-utensils"></i> Eating & Physical Symptoms</h3>
+                <div class="symptoms-grid">
+                    <div class="symptom-item">
+                        <label>Change in eating habits</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="change.in.eating" name="change.in.eating" value="1">
+                            <label for="change.in.eating" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Weight gain</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="weight.gain" name="weight.gain" value="1">
+                            <label for="weight.gain" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Increased energy</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="increased.energy" name="increased.energy" value="1">
+                            <label for="increased.energy" class="switch"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-users"></i> Social & Behavioral Symptoms</h3>
+                <div class="symptoms-grid">
+                    <div class="symptom-item">
+                        <label>Have close friends</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="close.friend" name="close.friend" value="1">
+                            <label for="close.friend" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Social media addiction</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="social.media.addiction" name="social.media.addiction" value="1">
+                            <label for="social.media.addiction" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Introvert personality</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="introvert" name="introvert" value="1">
+                            <label for="introvert" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Avoids people or activities</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="avoids.people.or.activities" name="avoids.people.or.activities" value="1">
+                            <label for="avoids.people.or.activities" class="switch"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-exclamation-triangle"></i> Severe Symptoms</h3>
+                <div class="symptoms-grid">
+                    <div class="symptom-item">
+                        <label>Suicidal thoughts</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="suicidal.thought" name="suicidal.thought" value="1">
+                            <label for="suicidal.thought" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Stressful memories popping up</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="popping.up.stressful.memory" name="popping.up.stressful.memory" value="1">
+                            <label for="popping.up.stressful.memory" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Having nightmares</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="having.nightmares" name="having.nightmares" value="1">
+                            <label for="having.nightmares" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Hallucinations</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="hallucinations" name="hallucinations" value="1">
+                            <label for="hallucinations" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Repetitive behavior</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="repetitive.behaviour" name="repetitive.behaviour" value="1">
+                            <label for="repetitive.behaviour" class="switch"></label>
+                        </div>
+                    </div>
+                    <div class="symptom-item">
+                        <label>Seasonal patterns</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="seasonally" name="seasonally" value="1">
+                            <label for="seasonally" class="switch"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large">
+                    <i class="fas fa-chart-line"></i>
+                    Get Assessment Results
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results will be shown here if prediction_text exists -->
+    {% if prediction_text %}
+    <div class="result-card">
+        <h3><i class="fas fa-clipboard-check"></i> Assessment Result</h3>
+        <div class="prediction-result">
+            {{ prediction_text }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('disease-form');
+    const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+    const ageInput = document.getElementById('age');
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    
+    // Add hidden inputs for unchecked checkboxes
+    checkboxes.forEach(checkbox => {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = checkbox.name;
+        hiddenInput.value = '0';
+        checkbox.parentNode.insertBefore(hiddenInput, checkbox);
+        
+        checkbox.addEventListener('change', function() {
+            hiddenInput.disabled = this.checked;
+            updateProgress();
+        });
+    });
+
+    ageInput.addEventListener('input', updateProgress);
+
+    function updateProgress() {
+        const totalFields = checkboxes.length + 1; // +1 for age
+        let filledFields = ageInput.value ? 1 : 0;
+        
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) filledFields++;
+        });
+        
+        const percentage = Math.round((filledFields / totalFields) * 100);
+        progressFill.style.width = percentage + '%';
+        progressText.textContent = percentage + '% Complete';
+    }
+
+    form.addEventListener('submit', function() {
+        showLoading();
+    });
+});
+</script>
+{% endblock %}

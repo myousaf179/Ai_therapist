@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}Therapist Chatbot - AI Health Assistant{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-comments"></i> AI Therapist Chat</h1>
+        <p>Have a conversation with our AI therapist for support and guidance</p>
+    </div>
+</div>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="therapist-info">
+            <div class="therapist-avatar">
+                <i class="fas fa-user-md"></i>
+            </div>
+            <div class="therapist-details">
+                <h3>Dr. AI Assistant</h3>
+                <span class="status online">Online</span>
+            </div>
+        </div>
+        <div class="chat-actions">
+            <button class="btn btn-secondary" id="clear-chat">
+                <i class="fas fa-trash"></i>
+                Clear Chat
+            </button>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+        <div class="message bot-message">
+            <div class="message-avatar">
+                <i class="fas fa-user-md"></i>
+            </div>
+            <div class="message-content">
+                <p>Hello! I'm Dr. AI, your therapist assistant. I'm here to listen and provide support. How are you feeling today?</p>
+                <span class="message-time">Just now</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-input-container">
+        <form id="chat-form">
+            <div class="chat-input-wrapper">
+                <textarea 
+                    id="chat-input" 
+                    placeholder="Type your message here..."
+                    rows="1"
+                ></textarea>
+                <button type="submit" class="send-btn" id="send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="session-controls">
+        <button class="btn btn-primary" id="end-session">
+            <i class="fas fa-stop-circle"></i>
+            End Session & Get Summary
+        </button>
+    </div>
+</div>
+
+<!-- Session Summary Modal -->
+<div class="modal" id="session-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-clipboard-list"></i> Session Summary</h3>
+            <button class="modal-close" id="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="summary-section">
+                <h4>Conversation Summary</h4>
+                <div class="summary-content" id="session-summary">
+                    <!-- Summary will be loaded here -->
+                </div>
+            </div>
+            <div class="emotion-section">
+                <h4>Emotional Analysis</h4>
+                <div class="emotion-analysis" id="session-emotion">
+                    <!-- Emotion analysis will be loaded here -->
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="start-new-session">
+                Start New Session
+            </button>
+            <button class="btn btn-primary" id="download-summary">
+                Download Summary
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatMessages = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const clearChatBtn = document.getElementById('clear-chat');
+    const endSessionBtn = document.getElementById('end-session');
+    const sessionModal = document.getElementById('session-modal');
+    const modalClose = document.getElementById('modal-close');
+    const startNewSessionBtn = document.getElementById('start-new-session');
+    const downloadSummaryBtn = document.getElementById('download-summary');
+    
+    // Store only USER messages for backend processing
+    let userMessages = [];
+    let conversationHistory = []; // For context to Gemini
+    let isTyping = false;
+
+    // Auto-resize textarea
+    chatInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    // Handle form submission
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const message = chatInput.value.trim();
+        if (!message || isTyping) return;
+        
+        // Add user message to chat
+        addMessage(message, 'user');
+        
+        // Store user message for backend processing
+        userMessages.push(message);
+        conversationHistory.push(message);
+        
+        // Clear input and disable send button
+        chatInput.value = '';
+        chatInput.style.height = 'auto';
+        
+        // Get response from Gemini
+        getTherapistResponse(message);
+    });
+
+    function addMessage(content, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}-message`;
+        
+        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        messageDiv.innerHTML = `
+            <div class="message-avatar">
+                <i class="fas ${sender === 'user' ? 'fa-user' : 'fa-user-md'}"></i>
+            </div>
+            <div class="message-content">
+                <p>${content}</p>
+                <span class="message-time">${time}</span>
+            </div>
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function getTherapistResponse(userMessage) {
+        isTyping = true;
+        sendBtn.disabled = true;
+        chatInput.disabled = true;
+        
+        // Show typing indicator
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message bot-message typing';
+        typingDiv.id = 'typing-indicator';
+        typingDiv.innerHTML = `
+            <div class="message-avatar">
+                <i class="fas fa-user-md"></i>
+            </div>
+            <div class="message-content">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        `;
+        
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        try {
+            const response = await fetch('/chat_with_therapist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: userMessage,
+                    history: conversationHistory.slice(-10) // Send last 10 messages for context
+                })
+            });
+            
+            const data = await response.json();
+            
+            // Remove typing indicator
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+            
+            if (response.ok && data.status === 'success') {
+                // Add therapist response
+                addMessage(data.response, 'bot');
+                // Don't store bot responses in userMessages (only user messages go to summary)
+            } else {
+                // Handle error
+                addMessage(data.error || 'Sorry, I encountered an error. Please try again.', 'bot');
+            }
+            
+        } catch (error) {
+            console.error('Error getting therapist response:', error);
+            
+            // Remove typing indicator
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+            
+            addMessage('Sorry, I\'m having trouble connecting right now. Please try again.', 'bot');
+        } finally {
+            isTyping = false;
+            sendBtn.disabled = false;
+            chatInput.disabled = false;
+            chatInput.focus();
+        }
+    }
+
+    // Clear chat
+    clearChatBtn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear the chat history?')) {
+            chatMessages.innerHTML = `
+                <div class="message bot-message">
+                    <div class="message-avatar">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div class="message-content">
+                        <p>Hello! I'm Dr. AI, your therapist assistant. I'm here to listen and provide support. How are you feeling today?</p>
+                        <span class="message-time">Just now</span>
+                    </div>
+                </div>
+            `;
+            userMessages = [];
+            conversationHistory = [];
+        }
+    });
+
+    // End session - Process user messages through summarizer and emotion analysis
+    endSessionBtn.addEventListener('click', async function() {
+        if (userMessages.length === 0) {
+            showToast('No conversation to summarize', 'warning');
+            return;
+        }
+
+        showLoading();
+        
+        try {
+            // Send user messages to backend for processing
+            const response = await fetch('/process_chat_session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_messages: userMessages
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to process chat session');
+            }
+            
+            const data = await response.json();
+            
+            // Show session summary modal with results
+            showSessionSummary(data.summary, data.emotion, data.confidence);
+            
+        } catch (error) {
+            console.error('Error processing session:', error);
+            showToast('Error generating session summary', 'error');
+        } finally {
+            hideLoading();
+        }
+    });
+
+    function showSessionSummary(summary, emotion, confidence) {
+        document.getElementById('session-summary').innerHTML = `<p>${summary}</p>`;
+        document.getElementById('session-emotion').innerHTML = `
+            <div class="emotion-result">
+                <div class="emotion-badge ${emotion.toLowerCase()}">
+                    ${emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+                </div>
+                <div class="confidence-display">
+                    Confidence: ${Math.round(confidence * 100)}%
+                </div>
+            </div>
+        `;
+        
+        sessionModal.style.display = 'flex';
+    }
+
+    // Modal controls
+    modalClose.addEventListener('click', () => {
+        sessionModal.style.display = 'none';
+    });
+
+    startNewSessionBtn.addEventListener('click', () => {
+        sessionModal.style.display = 'none';
+        clearChatBtn.click();
+    });
+
+    downloadSummaryBtn.addEventListener('click', () => {
+        const summary = document.getElementById('session-summary').textContent;
+        const emotion = document.getElementById('session-emotion').textContent;
+        
+        const content = `Therapy Session Summary\n\n${summary}\n\nEmotional Analysis\n${emotion}`;
+        
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `therapy-session-${new Date().toISOString().split('T')[0]}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // Close modal when clicking outside
+    sessionModal.addEventListener('click', (e) => {
+        if (e.target === sessionModal) {
+            sessionModal.style.display = 'none';
+        }
+    });
+
+    // Enable Enter to send (Shift+Enter for new line)
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (!isTyping && this.value.trim()) {
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

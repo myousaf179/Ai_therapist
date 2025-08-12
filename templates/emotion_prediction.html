@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Emotion Prediction - AI Health Assistant{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-smile"></i> Emotion Analysis</h1>
+        <p>Enter text to analyze emotional content using advanced AI</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="form-card">
+        <form id="emotion-form">
+            <div class="form-group">
+                <label for="emotion-text">Enter your text:</label>
+                <textarea 
+                    id="emotion-text" 
+                    name="text" 
+                    placeholder="Type or paste your text here..."
+                    rows="6"
+                    required
+                ></textarea>
+                <div class="char-counter">
+                    <span id="char-count">0</span> characters
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-brain"></i>
+                Analyze Emotion
+            </button>
+        </form>
+    </div>
+
+    <div class="result-card" id="emotion-result" style="display: none;">
+        <h3><i class="fas fa-chart-bar"></i> Analysis Result</h3>
+        <div class="emotion-display">
+            <div class="emotion-main">
+                <div class="emotion-icon" id="emotion-icon"></div>
+                <div class="emotion-text">
+                    <h4 id="emotion-name"></h4>
+                    <p>Detected Emotion</p>
+                </div>
+            </div>
+            <div class="confidence-meter">
+                <div class="confidence-label">Confidence</div>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="confidence-fill"></div>
+                </div>
+                <div class="confidence-value" id="confidence-value"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('emotion-form');
+    const textArea = document.getElementById('emotion-text');
+    const charCount = document.getElementById('char-count');
+    const resultCard = document.getElementById('emotion-result');
+
+    // Character counter
+    textArea.addEventListener('input', function() {
+        charCount.textContent = this.value.length;
+    });
+
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const text = textArea.value.trim();
+        if (!text) {
+            showToast('Please enter some text', 'error');
+            return;
+        }
+
+        showLoading();
+        
+        try {
+            const response = await fetch('/predict_emotion', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: text })
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                displayEmotionResult(data);
+            } else {
+                showToast(data.error || 'Error analyzing emotion', 'error');
+            }
+        } catch (error) {
+            showToast('Network error. Please try again.', 'error');
+        } finally {
+            hideLoading();
+        }
+    });
+
+    function displayEmotionResult(data) {
+        const emotionIcons = {
+            'joy': 'fas fa-laugh-beam',
+            'sadness': 'fas fa-sad-tear',
+            'anger': 'fas fa-angry',
+            'fear': 'fas fa-grimace',
+            'surprise': 'fas fa-surprise',
+            'disgust': 'fas fa-meh-blank',
+            'neutral': 'fas fa-meh'
+        };
+
+        const emotionColors = {
+            'joy': '#f39c12',
+            'sadness': '#3498db',
+            'anger': '#e74c3c',
+            'fear': '#9b59b6',
+            'surprise': '#f1c40f',
+            'disgust': '#95a5a6',
+            'neutral': '#7f8c8d'
+        };
+
+        document.getElementById('emotion-icon').innerHTML = 
+            `<i class="${emotionIcons[data.emotion.toLowerCase()] || 'fas fa-meh'}"></i>`;
+        document.getElementById('emotion-name').textContent = 
+            data.emotion.charAt(0).toUpperCase() + data.emotion.slice(1);
+        document.getElementById('confidence-fill').style.width = `${data.confidence * 100}%`;
+        document.getElementById('confidence-fill').style.backgroundColor = 
+            emotionColors[data.emotion.toLowerCase()] || '#7f8c8d';
+        document.getElementById('confidence-value').textContent = 
+            `${Math.round(data.confidence * 100)}%`;
+
+        resultCard.style.display = 'block';
+        resultCard.scrollIntoView({ behavior: 'smooth' });
+    }
+});
+</script>
+{% endblock %}

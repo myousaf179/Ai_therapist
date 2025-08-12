@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Home - AI Health Assistant{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1 class="hero-title">AI Health Assistant</h1>
+        <p class="hero-subtitle">Your intelligent companion for mental health analysis and support</p>
+        <div class="hero-cta">
+            <button class="btn btn-primary" onclick="scrollToFeatures()">
+                Explore Features
+                <i class="fas fa-arrow-down"></i>
+            </button>
+        </div>
+    </div>
+    <div class="hero-visual">
+        <div class="floating-card">
+            <i class="fas fa-brain"></i>
+        </div>
+    </div>
+</div>
+
+<div class="features-section" id="features">
+    <div class="container">
+        <h2 class="section-title">Our AI-Powered Features</h2>
+        <div class="features-grid">
+            
+            <div class="feature-card" data-aos="fade-up">
+                <div class="feature-icon">
+                    <i class="fas fa-smile"></i>
+                </div>
+                <h3>Emotion Analysis</h3>
+                <p>Analyze text to detect emotional states with high accuracy using advanced NLP models.</p>
+                <a href="/emotion" class="feature-link">
+                    Try Now <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+                <div class="feature-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h3>Text Summarizer</h3>
+                <p>Summarize long texts or PDF documents and analyze the emotional content of summaries.</p>
+                <a href="/summarizer" class="feature-link">
+                    Try Now <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+                <div class="feature-icon">
+                    <i class="fas fa-stethoscope"></i>
+                </div>
+                <h3>Disease Prediction</h3>
+                <p>Predict potential mental health disorders based on symptoms and behavioral patterns.</p>
+                <a href="/disease" class="feature-link">
+                    Try Now <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+                <div class="feature-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3>Therapist Chatbot</h3>
+                <p>Chat with our AI therapist for support and get session summaries with emotional insights.</p>
+                <a href="/chatbot" class="feature-link">
+                    Try Now <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<script>
+function scrollToFeatures() {
+    document.getElementById('features').scrollIntoView({ 
+        behavior: 'smooth' 
+    });
+}
+</script>
+{% endblock %}

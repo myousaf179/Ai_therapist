@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Text Summarizer - AI Health Assistant{% endblock %}
+
+{% block extra_head %}
+<!-- Use PDF.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-file-alt"></i> Text Summarizer</h1>
+        <p>Summarize text or PDF documents and analyze emotional content</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="form-card">
+        <div class="input-tabs">
+            <button class="tab-btn active" data-tab="text">
+                <i class="fas fa-keyboard"></i> Text Input
+            </button>
+            <button class="tab-btn" data-tab="pdf">
+                <i class="fas fa-file-pdf"></i> PDF Upload
+            </button>
+        </div>
+
+        <form id="summarizer-form" method="POST" action="/text_summarizer">
+            <!-- Single input field that will be populated based on active tab -->
+            <input type="hidden" id="final-text-input" name="summary_input">
+            
+            <div class="tab-content active" id="text-tab">
+                <div class="form-group">
+                    <label for="summary-text">Enter text to summarize:</label>
+                    <textarea 
+                        id="summary-text" 
+                        placeholder="Paste your text here..."
+                        rows="8"
+                    ></textarea>
+                    <div class="char-counter">
+                        <span id="text-char-count">0</span> characters
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="pdf-tab">
+                <div class="form-group">
+                    <label for="pdf-upload">Upload PDF file:</label>
+                    <div class="file-upload-area" id="pdf-drop-area">
+                        <input type="file" id="pdf-upload" accept=".pdf" hidden>
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Drag & drop PDF here or <span class="upload-link">browse</span></p>
+                        </div>
+                    </div>
+                    <div class="file-info" id="file-info" style="display: none;">
+                        <i class="fas fa-file-pdf"></i>
+                        <span id="file-name"></span>
+                        <button type="button" class="remove-file" id="remove-file">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="extracted-text" id="extracted-text-container" style="display: none;">
+                    <h4>Extracted Text:</h4>
+                    <div class="text-preview" id="extracted-text"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-magic"></i>
+                Summarize & Analyze
+            </button>
+        </form>
+    </div>
+
+    {% if summary_result %}
+    <div class="results-container">
+        <div class="result-card">
+            <h3><i class="fas fa-compress-alt"></i> Summary</h3>
+            <div class="summary-content">
+                <p data-summary>{{ summary_result }}</p>
+            </div>
+        </div>
+
+        {% if emotion_result %}
+        <div class="result-card">
+            <h3><i class="fas fa-heart"></i> Emotional Analysis</h3>
+            <div class="emotion-analysis">
+                <div class="emotion-result">
+                    <div class="emotion-badge {{ emotion_result.lower() }}" data-emotion>
+                        {{ emotion_result }}
+                    </div>
+                    <div class="confidence-display" data-confidence>
+                        Confidence: {{ (emotion_confidence * 100)|round }}%
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Set PDF.js worker from CDN
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('summarizer-form');
+    const textArea = document.getElementById('summary-text');
+    const textCharCount = document.getElementById('text-char-count');
+    const pdfUpload = document.getElementById('pdf-upload');
+    const pdfDropArea = document.getElementById('pdf-drop-area');
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const removeFile = document.getElementById('remove-file');
+    const extractedTextContainer = document.getElementById('extracted-text-container');
+    const extractedText = document.getElementById('extracted-text');
+    const finalTextInput = document.getElementById('final-text-input');
+    
+    let currentTab = 'text';
+    let extractedPdfText = '';
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tab = this.dataset.tab;
+            switchTab(tab);
+        });
+    });
+
+    function switchTab(tab) {
+        currentTab = tab;
+        
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.toggle('active', content.id === `${tab}-tab`);
+        });
+    }
+
+    // Character counter for text input
+    textArea.addEventListener('input', function() {
+        textCharCount.textContent = this.value.length;
+    });
+
+    // PDF upload handling
+    pdfDropArea.addEventListener('click', () => pdfUpload.click());
+    
+    pdfDropArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        pdfDropArea.classList.add('drag-over');
+    });
+    
+    pdfDropArea.addEventListener('dragleave', () => {
+        pdfDropArea.classList.remove('drag-over');
+    });
+    
+    pdfDropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        pdfDropArea.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        if (files.length > 0 && files[0].type === 'application/pdf') {
+            handlePdfFile(files[0]);
+        }
+    });
+
+    pdfUpload.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            handlePdfFile(this.files[0]);
+        }
+    });
+
+    removeFile.addEventListener('click', function() {
+        pdfUpload.value = '';
+        fileInfo.style.display = 'none';
+        extractedTextContainer.style.display = 'none';
+        extractedPdfText = '';
+    });
+
+    async function handlePdfFile(file) {
+        fileName.textContent = file.name;
+        fileInfo.style.display = 'flex';
+        
+        showLoading();
+        
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            let fullText = '';
+            
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n';
+            }
+            
+            extractedPdfText = fullText.trim();
+            extractedText.textContent = extractedPdfText.substring(0, 500) + 
+                (extractedPdfText.length > 500 ? '...' : '');
+            extractedTextContainer.style.display = 'block';
+            
+        } catch (error) {
+            showToast('Error reading PDF file', 'error');
+            console.error('PDF processing error:', error);
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Form submission - THIS IS THE KEY FIX
+    form.addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent default form submission
+        
+        let textToSummarize = '';
+        
+        // Get text based on current tab
+        if (currentTab === 'text') {
+            textToSummarize = textArea.value.trim();
+        } else {
+            textToSummarize = extractedPdfText;
+        }
+        
+        if (!textToSummarize) {
+            showToast('Please provide text to summarize', 'error');
+            return;
+        }
+
+        // Set the text in the hidden input field
+        finalTextInput.value = textToSummarize;
+        
+        showLoading();
+        
+        // Now submit the form
+        form.submit();
+    });
+});
+</script>
+{% endblock %}
